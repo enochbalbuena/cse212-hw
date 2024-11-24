@@ -21,8 +21,23 @@ public static class SetsAndMaps
     /// <param name="words">An array of 2-character words (lowercase, no duplicates)</param>
     public static string[] FindPairs(string[] words)
     {
-        // TODO Problem 1 - ADD YOUR CODE HERE
-        return [];
+        var result = new List<string>();
+        var seenWords = new HashSet<string>();
+
+        foreach (var word in words)
+        {
+            var reversed = new string(word.Reverse().ToArray());
+            if (seenWords.Contains(reversed))
+            {
+                result.Add($"{word} & {reversed}");
+            }
+            else
+            {
+                seenWords.Add(word);
+            }
+        }
+
+        return result.ToArray();
     }
 
     /// <summary>
@@ -42,7 +57,16 @@ public static class SetsAndMaps
         foreach (var line in File.ReadLines(filename))
         {
             var fields = line.Split(",");
-            // TODO Problem 2 - ADD YOUR CODE HERE
+            var degree = fields[3].Trim(); // Assuming the 4th column contains the degree
+
+            if (degrees.ContainsKey(degree))
+            {
+                degrees[degree]++;
+            }
+            else
+            {
+                degrees[degree] = 1;
+            }
         }
 
         return degrees;
@@ -66,8 +90,37 @@ public static class SetsAndMaps
     /// </summary>
     public static bool IsAnagram(string word1, string word2)
     {
-        // TODO Problem 3 - ADD YOUR CODE HERE
-        return false;
+        var charCount = new Dictionary<char, int>();
+
+        foreach (var c in word1.ToLower().Where(char.IsLetter))
+        {
+            if (charCount.ContainsKey(c))
+            {
+                charCount[c]++;
+            }
+            else
+            {
+                charCount[c] = 1;
+            }
+        }
+
+        foreach (var c in word2.ToLower().Where(char.IsLetter))
+        {
+            if (charCount.ContainsKey(c))
+            {
+                charCount[c]--;
+                if (charCount[c] == 0)
+                {
+                    charCount.Remove(c);
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return charCount.Count == 0;
     }
 
     /// <summary>
@@ -87,20 +140,26 @@ public static class SetsAndMaps
     public static string[] EarthquakeDailySummary()
     {
         const string uri = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
-        using var client = new HttpClient();
-        using var getRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
-        using var jsonStream = client.Send(getRequestMessage).Content.ReadAsStream();
-        using var reader = new StreamReader(jsonStream);
-        var json = reader.ReadToEnd();
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        using var client = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
 
-        var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
+        try
+        {
+            var json = client.GetStringAsync(uri).Result;
 
-        // TODO Problem 5:
-        // 1. Add code in FeatureCollection.cs to describe the JSON using classes and properties 
-        // on those classes so that the call to Deserialize above works properly.
-        // 2. Add code below to create a string out each place a earthquake has happened today and its magitude.
-        // 3. Return an array of these string descriptions.
-        return [];
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
+
+            return featureCollection.Features
+                .Select(f => $"{f.Properties.Place} - Mag {f.Properties.Mag}")
+                .ToArray();
+        }
+        catch (TaskCanceledException)
+        {
+            Debug.WriteLine("The request timed out.");
+            throw new InvalidOperationException("Unable to fetch earthquake data due to a timeout.");
+        }
     }
 }
