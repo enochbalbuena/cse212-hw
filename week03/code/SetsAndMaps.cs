@@ -140,26 +140,19 @@ public static class SetsAndMaps
     public static string[] EarthquakeDailySummary()
     {
         const string uri = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
-        using var client = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(30)
-        };
+        
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        var json = client.GetStringAsync(uri).Result;
 
-        try
-        {
-            var json = client.GetStringAsync(uri).Result;
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
 
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
+        if (featureCollection?.Features == null)
+            return Array.Empty<string>();
 
-            return featureCollection.Features
-                .Select(f => $"{f.Properties.Place} - Mag {f.Properties.Mag}")
-                .ToArray();
-        }
-        catch (TaskCanceledException)
-        {
-            Debug.WriteLine("The request timed out.");
-            throw new InvalidOperationException("Unable to fetch earthquake data due to a timeout.");
-        }
+        return featureCollection.Features
+            .Where(f => f.Properties?.Place != null && f.Properties.Mag != null)
+            .Select(f => $"{f.Properties.Place} - Mag {f.Properties.Mag}")
+            .ToArray();
     }
 }
