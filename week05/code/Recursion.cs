@@ -14,8 +14,9 @@ public static class Recursion
     /// </summary>
     public static int SumSquaresRecursive(int n)
     {
-        // TODO Start Problem 1
-        return 0;
+        if (n <= 0)
+            return 0; // Base case
+        return n * n + SumSquaresRecursive(n - 1); // Recursive call
     }
 
     /// <summary>
@@ -39,7 +40,17 @@ public static class Recursion
     /// </summary>
     public static void PermutationsChoose(List<string> results, string letters, int size, string word = "")
     {
-        // TODO Start Problem 2
+        if (word.Length == size)
+        {
+            results.Add(word); // Add completed word to results
+            return;
+        }
+
+        foreach (char c in letters)
+        {
+            if (!word.Contains(c)) // Avoid duplicate characters
+                PermutationsChoose(results, letters, size, word + c);
+        }
     }
 
     /// <summary>
@@ -86,20 +97,22 @@ public static class Recursion
     /// </summary>
     public static decimal CountWaysToClimb(int s, Dictionary<int, decimal>? remember = null)
     {
-        // Base Cases
+        if (remember == null)
+            remember = new Dictionary<int, decimal>();
+
         if (s == 0)
-            return 0;
-        if (s == 1)
             return 1;
-        if (s == 2)
-            return 2;
-        if (s == 3)
-            return 4;
+        if (s < 0)
+            return 0;
 
-        // TODO Start Problem 3
+        if (remember.ContainsKey(s))
+            return remember[s];
 
-        // Solve using recursion
-        decimal ways = CountWaysToClimb(s - 1) + CountWaysToClimb(s - 2) + CountWaysToClimb(s - 3);
+        decimal ways = CountWaysToClimb(s - 1, remember) +
+                    CountWaysToClimb(s - 2, remember) +
+                    CountWaysToClimb(s - 3, remember);
+
+        remember[s] = ways; // Store result in the dictionary
         return ways;
     }
 
@@ -118,26 +131,49 @@ public static class Recursion
     /// </summary>
     public static void WildcardBinary(string pattern, List<string> results)
     {
-        // TODO Start Problem 4
+        int wildcardIndex = pattern.IndexOf('*');
+        if (wildcardIndex == -1)
+        {
+            results.Add(pattern); // No wildcards left, add the pattern
+            return;
+        }
+
+        WildcardBinary(pattern.Substring(0, wildcardIndex) + "0" + pattern.Substring(wildcardIndex + 1), results);
+        WildcardBinary(pattern.Substring(0, wildcardIndex) + "1" + pattern.Substring(wildcardIndex + 1), results);
     }
 
     /// <summary>
     /// Use recursion to insert all paths that start at (0,0) and end at the
     /// 'end' square into the results list.
     /// </summary>
-    public static void SolveMaze(List<string> results, Maze maze, int x = 0, int y = 0, List<ValueTuple<int, int>>? currPath = null)
+   public static void SolveMaze(List<string> results, Maze maze, int x = 0, int y = 0, List<ValueTuple<int, int>>? currPath = null)
     {
-        // If this is the first time running the function, then we need
-        // to initialize the currPath list.
-        if (currPath == null) {
+        if (currPath == null)
             currPath = new List<ValueTuple<int, int>>();
+
+        // Add current position to the path
+        currPath.Add((x, y));
+
+        if (maze.IsEnd(x, y))
+        {
+            results.Add(currPath.AsString()); // Add path to results if end is reached
+            return;
         }
-        
-        // currPath.Add((1,2)); // Use this syntax to add to the current path
 
-        // TODO Start Problem 5
-        // ADD CODE HERE
+        // Explore possible directions
+        int[] dx = { 0, 0, -1, 1 }; // Left, Right, Up, Down
+        int[] dy = { -1, 1, 0, 0 };
 
-        // results.Add(currPath.AsString()); // Use this to add your path to the results array keeping track of complete maze solutions when you find the solution.
+        for (int i = 0; i < 4; i++)
+        {
+            int newX = x + dx[i];
+            int newY = y + dy[i];
+
+            if (maze.IsValidMove(currPath, newX, newY))
+            {
+                var newPath = new List<ValueTuple<int, int>>(currPath); // Create a copy of the current path
+                SolveMaze(results, maze, newX, newY, newPath); // Recursive call
+            }
+        }
     }
 }
